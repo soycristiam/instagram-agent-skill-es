@@ -36,30 +36,72 @@ import re
 import statistics
 import sys
 
-WORD_RE = re.compile(r"[A-Za-z0-9$%'’-]+")
+# Windows consoles default to cp1252 and choke on the first emoji or accent.
+for _stream in (sys.stdin, sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
+
+def _read_input(path):
+    """Read a text file, or stdin when path is "-". Accepts UTF-8 with or
+    without BOM, UTF-16 (what Windows PowerShell 5.1 writes with `>`) and, as
+    a last resort, Windows ANSI, so a file saved on Windows never crashes."""
+    if path == "-":
+        return sys.stdin.read().lstrip("\ufeff")
+    with open(path, "rb") as fh:
+        data = fh.read()
+    if data[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        return data.decode("utf-16")
+    try:
+        return data.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return data.decode("cp1252")
+
+# ---------------------------------------------------------------------------
+# Spanish (rioplatense) adaptation. English vocabulary is kept so English hooks
+# still score; Spanish is added alongside it. Tokenising is Unicode-aware so
+# "automatización" and "dólares" are single words.
+# ---------------------------------------------------------------------------
+
+WORD_RE = re.compile(r"[\w$%'’€-]+")
 NUMBER_RE = re.compile(
-    r"\$\s?\d[\d,]*(?:\.\d+)?"                       # money, whole
-    r"|\b\d[\d,]*(?:\.\d+)?\s?"                      # a figure, with or
-    r"(?:%|k\b|x\b|hrs?\b|hours?\b|mins?\b|minutes?\b"  # without a unit
-    r"|days?\b|weeks?\b|months?\b|years?\b)?",
+    r"(?:US\$|USD|U\$S|\$|€|ARS|MXN)\s?\d[\d.,]*"              # money, whole
+    r"|\b\d[\d.,]*\s?"                                        # a figure, with or
+    r"(?:%|k\b|x\b|hrs?\b|hours?\b|mins?\b|minutes?\b"        # without a unit
+    r"|days?\b|weeks?\b|months?\b|years?\b"
+    r"|hs\b|horas?\b|minutos?\b|segundos?\b|d[ií]as?\b|semanas?\b"
+    r"|mes\b|meses\b|años?\b|d[óo]lares\b|pesos\b|euros\b|lucas\b|palos\b"
+    r"|clientes?\b|ventas?\b|pedidos?\b|mensajes?\b|leads?\b)?",
     re.IGNORECASE)
-PROPER_RE = re.compile(r"(?<!^)\b[A-Z][a-z]{2,}\b")
+PROPER_RE = re.compile(r"(?<!^)\b[A-ZÁÉÍÓÚÑÜ][a-záéíóúñü]{2,}\w*\b")
 HASHTAG_RE = re.compile(r"(?:^|\s)#\w+")
 EMOJI_RE = re.compile(r"[\U0001F300-\U0001FAFF☀-➿]")
 
 # Spoken hooks say their numbers out loud. "Zero dollars" and "twenty grand"
 # are as concrete as "$0" and "$20,000", and counting only digits missed them.
 # "one" and "first" are deliberately absent: they are filler far more often
-# than they are a quantity.
+# than they are a quantity. Same for "uno", "una", "primero".
 SPOKEN_NUMBERS = {
     "zero", "two", "three", "four", "five", "six", "seven", "eight", "nine",
     "ten", "eleven", "twelve", "fifteen", "twenty", "thirty", "forty", "fifty",
     "sixty", "seventy", "eighty", "ninety", "hundred", "thousand", "million",
     "billion", "dozen", "half", "twice", "triple",
+    # es
+    "cero", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve",
+    "diez", "once", "doce", "quince", "veinte", "treinta", "cuarenta",
+    "cincuenta", "sesenta", "setenta", "ochenta", "noventa", "cien", "ciento",
+    "cientos", "mil", "miles", "millón", "millon", "millones", "docena",
+    "mitad", "doble", "triple",
 }
 MONEY_WORDS = {
     "dollars", "dollar", "bucks", "grand", "percent", "cents",
     "millionaire", "billionaire", "revenue", "profit", "salary", "rent",
+    # es
+    "dólares", "dolares", "dólar", "dolar", "pesos", "euros", "lucas", "palos",
+    "centavos", "porciento", "facturación", "facturacion", "ganancia",
+    "ganancias", "sueldo", "alquiler", "plata", "guita", "usd",
 }
 
 # Words that put something on the line. A hook with none of these is a
@@ -76,6 +118,36 @@ STAKES = {
     "before", "until", "instead", "but", "except", "unless", "problem",
     "risk", "danger", "warning", "regret", "wish", "should", "shouldn't",
     "still", "already", "only", "without", "versus", "vs", "actually",
+    # es: pérdida, costo, negación, tensión
+    "dejá", "deja", "dejen", "basta", "nunca", "jamás", "jamas", "mal",
+    "error", "errores", "equivocado", "equivocada", "equivocás", "equivocas",
+    "perdí", "perdi", "perder", "perdiendo", "perdió", "perdio", "perdés",
+    "perdes", "perdiste", "perdimos", "pierde", "pierden", "pierdo", "perdido",
+    "perdida", "perdidas", "perdidos",
+    "costó", "costo", "cuesta", "cuestan", "costaron", "costando", "caro", "cara",
+    "roto", "rota", "rompió", "rompio", "rompe", "fallé", "falle", "falló",
+    "fallo", "falla", "fallan", "fracaso", "fracasó", "fracaso", "fracasan",
+    "nadie", "ni", "ningún", "ningun", "ninguna", "ninguno", "nada",
+    "renuncié", "renuncie", "despidieron", "despedí", "echaron", "borré",
+    "borre", "borrá", "borra", "mató", "mata", "matan", "reemplazó",
+    "reemplaza", "reemplazan", "reemplacé", "cortá", "corta", "corté",
+    "gratis", "pagué", "pague", "pagó", "pago", "pagan", "pagando", "cobré",
+    "cobre", "cobró", "cobra", "cobran", "cobrás", "contraté", "contrate",
+    "ahorré", "ahorre", "ahorra", "ahorran", "ahorrás", "primero", "primer",
+    "primera", "último", "ultimo", "última",
+    "prohibido", "ilegal", "peor", "odio", "odié", "odie", "desperdicié",
+    "desperdicio", "tiré", "tire", "tirás", "quemé", "queme", "quemás",
+    "quemando", "estafa", "estafaron", "mentira", "mintió", "mintieron",
+    "verdad", "secreto", "oculto", "escondido", "robó", "robaron", "roban",
+    "antes", "hasta", "vez", "pero", "salvo", "excepto", "problema",
+    "problemas", "riesgo", "peligro", "cuidado", "ojo", "arrepiento",
+    "arrepentí", "ojalá", "ojala", "debería", "deberías", "deberia",
+    "deberias", "todavía", "todavia", "ya", "solo", "sólo", "sin", "versus",
+    "vs", "realmente", "realidad", "tarde", "demasiado", "trampa", "culpa",
+    "cuello", "botella", "frenó", "frena", "frenando", "trabado", "trabada",
+    "atascado", "estancado", "estancada", "espera", "esperando", "esperó",
+    "respondió", "respondí", "respondés", "contestó", "contestás",
+    "cancelado", "canceló", "cancelaron", "devolución", "devolvió", "reembolso",
 }
 
 # Openers that spend the first second saying nothing.
@@ -86,6 +158,20 @@ WEAK_OPENERS = [
     "have you", "did you", "do you", "are you", "in this", "in today",
     "the thing", "a lot", "there is", "there are", "this is", "it is",
     "as a", "when it", "if you've", "you know",
+    # es
+    "bueno", "buenas", "buen", "hola", "holis", "holaa", "gente", "che",
+    "dale", "hoy", "básicamente", "basicamente", "sinceramente",
+    "honestamente", "la verdad", "mirá", "mira", "miren", "escuchá",
+    "escucha", "escuchen", "eh", "este", "o sea", "bien", "okey", "entonces",
+    "quería", "queria", "quiero", "les quiero", "te quiero", "hoy les",
+    "hoy te", "hoy vengo", "hoy quiero", "hoy vamos", "uno de", "una de",
+    "alguna vez", "sabías", "sabias", "sabían", "te pasó", "les pasó",
+    "en este", "en el", "el tema", "la cosa", "un montón", "hay un",
+    "hay una", "esto es", "es un", "es una", "como", "cuando se", "si alguna",
+    "ya sabés", "ya sabes", "viste que", "bienvenidos", "bienvenidas",
+    "qué tal", "que tal", "cómo están", "como estan", "cómo andan",
+    "como andan", "les cuento", "te cuento", "vengo a", "vamos a",
+    "en el video", "en este video", "antes de empezar", "primero que nada",
 ]
 
 # Imperatives that earn the front position.
@@ -93,14 +179,86 @@ IMPERATIVES = {
     "stop", "steal", "copy", "delete", "try", "watch", "read", "save",
     "use", "build", "make", "write", "send", "take", "start", "quit",
     "never", "always", "don't", "dont", "do", "put", "run", "check",
+    # es (voseo + tú)
+    "dejá", "deja", "basta", "robá", "roba", "copiá", "copia", "borrá",
+    "borra", "probá", "prueba", "leé", "lee", "guardá", "guarda", "usá",
+    "usa", "armá", "arma", "hacé", "hace", "escribí", "escribe", "mandá",
+    "manda", "tomá", "toma", "empezá", "empieza", "arrancá", "arranca",
+    "renunciá", "renuncia", "nunca", "siempre", "no", "poné", "pon", "corré",
+    "corre", "fijate", "fíjate", "chequeá", "chequea", "revisá", "revisa",
+    "anotá", "anota", "frená", "frena", "pará", "para", "olvidate",
+    "olvídate", "acordate", "acuérdate", "imaginá", "imagina", "pensá",
+    "piensa", "comentá", "comenta", "contestá", "contesta", "respondé",
+    "responde", "cobrá", "cobra", "vendé", "vende", "automatizá",
+    "automatiza", "sacá", "saca", "cortá", "corta", "calculá", "calcula",
+    "medí", "mide", "preguntale", "pregúntale", "decile", "dile", "mostrale",
+    "cerrá", "cierra", "abrí", "abre", "contá", "cuenta", "sumá", "suma",
+    "restá", "resta", "conectá", "conecta", "cambiá", "cambia",
+}
+
+# Second person in Spanish. Explicit pronouns, the most common voseo verb
+# forms, the voseo/tú imperatives above, and a verb-ending heuristic (-ás /
+# -és is voseo present: "tenés", "cobrás") with the nouns and adverbs that
+# share the ending excluded.
+SECOND_PERSON_RE = re.compile(
+    r"\b(?:you|your|you're|youre|yourself"
+    r"|vos|te|tu|tus|tuyo|tuya|tuyos|tuyas|tú|ti|contigo|usted|ustedes|les|os"
+    r"|sos|tenés|tenes|querés|queres|podés|podes|sabés|sabes|hacés|haces"
+    r"|estás|estas|vas|necesitás|necesitas|pensás|piensas|creés|crees|ves"
+    r"|decís|dices|vendés|vendes|cobrás|cobras|perdés|pierdes|gastás|gastas"
+    r"|pagás|pagas|usás|usas|mandás|mandas|respondés|respondes|tardás|tardas"
+    r"|contestás|contestas|laburás|laburas|trabajás|trabajas|seguís|sigues"
+    r"|vivís|vives|tenías|tenias|podías|podias|querías|querias|sabías|sabias"
+    r"|hiciste|perdiste|pagaste|cobraste|gastaste|mandaste|respondiste"
+    r"|vendiste|tardaste|contrataste|dejaste|armaste|probaste)\b",
+    re.IGNORECASE)
+VOSEO_ENDING_RE = re.compile(r"\b[a-záéíóúñü]{3,}(?:ás|és)\b", re.IGNORECASE)
+NOT_VOSEO = {
+    "además", "jamás", "quizás", "atrás", "detrás", "demás", "inglés",
+    "francés", "después", "través", "interés", "estrés", "revés", "cortés",
+    "portugués", "holandés", "japonés", "danés", "irlandés", "escocés",
+    "burgués", "marqués", "ciprés", "montés", "compás", "finlandés",
+    "entremés", "arnés", "pavés", "andrés", "tomás", "inés", "moisés",
+    "nicolás", "barrabás", "ananás", "ajedrez",
+}
+# First person: pronouns, the common irregular preterites, and -é/-í
+# preterite endings ("perdí", "pagué") minus words that share the ending.
+# The -é/-í check runs after the second-person check because "escribí" is
+# both "I wrote" and "write!" in voseo; the imperative set wins that tie.
+FIRST_PERSON_RE = re.compile(
+    r"\b(?:i|my|me|we|our"
+    r"|yo|mi|mis|mío|mía|míos|mías|nosotros|nosotras|nos|nuestro|nuestra"
+    r"|nuestros|nuestras|conmigo|hice|tuve|fui|estuve|pude|puse|dije|vi|di"
+    r"|supe|quise|vine|traje|hago|tengo|estoy|puedo|quiero|sé|voy|soy|cobro"
+    r"|pierdo|gasto|pago|vendo|trabajo|laburo|facturo|automatizo)\b",
+    re.IGNORECASE)
+FIRST_PERSON_VERB_RE = re.compile(r"\b[a-záéíóúñü]{3,}(?:é|í)\b", re.IGNORECASE)
+NOT_FIRST_PERSON = {
+    "qué", "porqué", "café", "así", "ahí", "aquí", "allí", "sí", "bebé",
+    "josé", "maní", "pié", "té", "comité", "chalé", "carné", "puré", "canapé",
+    "cabaré", "ballet", "corsé", "parqué", "bidé", "cliché", "rosé", "soufflé",
+    "colibrí", "israelí", "iraní", "marroquí", "paquistaní", "rubí", "jabalí",
+    "alhelí", "frenesí", "esquí", "taxi", "safari", "wifi", "mí", "tahití",
+    "haití", "bisturí", "berbiquí", "zahorí", "maniquí", "ahí", "hindú",
 }
 
 DEALBREAKERS = [
-    (re.compile(r"(?i)^\s*(?:stop scrolling|don'?t scroll)"),
+    (re.compile(r"(?i)^\s*¿?(?:stop scrolling|don'?t scroll"
+                r"|dej[áa] de scrollear|dejen de scrollear|par[áa] de scrollear"
+                r"|no sigas scrolleando|no scrollees|no pases de largo"
+                r"|esper[áa][,.]? no (?:sigas|scrollees|pases))"),
      "Opens with \"stop scrolling\". Asking for attention proves you have not earned it."),
-    (re.compile(r"(?i)\b(?:in (?:this|today'?s) (?:video|reel)|i'?m going to show you|i'?ll show you how)\b"),
+    (re.compile(r"(?i)\b(?:in (?:this|today'?s) (?:video|reel)|i'?m going to show you|i'?ll show you how"
+                r"|en (?:este|el) (?:video|reel|posteo)(?: de hoy)?"
+                r"|hoy (?:les|te|os) (?:quiero|voy a|vengo a|quería) (?:hablar|contar|mostrar|enseñar|explicar)"
+                r"|(?:te|les|os) voy a (?:mostrar|enseñar|contar|explicar) (?:cómo|como|por qué|porque|qué|que)"
+                r"|hoy vengo a (?:contar|hablar|mostrar)(?:les|te)?"
+                r"|hoy (?:vamos a|les voy a|te voy a) (?:hablar|ver|contar))\b"),
      "Video preamble. Delete it and open on the payoff."),
-    (re.compile(r"(?i)^\s*(?:hey |hi |what'?s up |welcome )"),
+    (re.compile(r"(?i)^\s*¡?(?:hey |hi |what'?s up |welcome "
+                r"|hola\b|holis\b|holaa+\b|buenas\b|buen d[ií]a\b|buenos d[ií]as\b"
+                r"|buenas tardes\b|buenas noches\b|qu[ée] tal\b|c[óo]mo (?:est[áa]n|andan)\b"
+                r"|bienvenid[oa]s?\b|hey gente\b|che gente\b|gente\b)"),
      "Greeting. Nobody came to the feed to be greeted."),
     (HASHTAG_RE,
      "Hashtag in the hook. Hashtags belong at the bottom of the caption, if anywhere."),
@@ -115,7 +273,29 @@ def clamp(n):
 
 def words(text):
     # "$18,000" is one word when it is spoken, so it is one word here too.
-    return WORD_RE.findall(re.sub(r"(?<=\d),(?=\d)", "", text))
+    # Spanish writes thousands with a dot ("2.000"), so that collapses as well.
+    text = re.sub(r"(?<=\d),(?=\d{3}\b)", "", text)
+    text = re.sub(r"(?<=\d)\.(?=\d{3}\b)", "", text)
+    return WORD_RE.findall(text)
+
+
+def second_person_hits(text):
+    """Explicit second person, voseo forms, imperatives and -ás/-és endings."""
+    hits = [m.group(0) for m in SECOND_PERSON_RE.finditer(text)]
+    low = [w.lower().strip("'’¿¡") for w in words(text)]
+    hits += [w for w in low if w in IMPERATIVES and w not in {"no", "nunca", "siempre", "never", "always", "don't", "dont", "do"}]
+    hits += [w for w in low if VOSEO_ENDING_RE.fullmatch(w) and w not in NOT_VOSEO]
+    return hits
+
+
+def first_person_hits(text):
+    """Explicit first person plus -é/-í preterites that are not imperatives."""
+    hits = [m.group(0) for m in FIRST_PERSON_RE.finditer(text)]
+    low = [w.lower().strip("'’¿¡") for w in words(text)]
+    hits += [w for w in low
+             if FIRST_PERSON_VERB_RE.fullmatch(w)
+             and w not in NOT_FIRST_PERSON and w not in IMPERATIVES]
+    return hits
 
 
 def check_length(text):
@@ -139,8 +319,11 @@ def check_specificity(text):
     """One concrete thing beats three abstract ones."""
     nums = [n.strip() for n in NUMBER_RE.findall(text) if n.strip()]
     propers = set(PROPER_RE.findall(text))
-    low = [w.lower().strip("'’") for w in words(text)]
-    spoken = [w for w in low if w in SPOKEN_NUMBERS or w in MONEY_WORDS]
+    low = [w.lower().strip("'’¿¡") for w in words(text)]
+    # A unit already counted inside a figure ("2.000 dólares") is not a second marker.
+    covered = " ".join(n.lower() for n in nums)
+    spoken = [w for w in low
+              if (w in SPOKEN_NUMBERS or w in MONEY_WORDS) and w not in covered.split()]
     hits = len(nums) + len(propers) + len(spoken)
     score = 15.0 if hits == 0 else clamp(45 + hits * 30)
     found = ", ".join(nums[:2] + sorted(propers)[:2] + spoken[:2])
@@ -150,10 +333,10 @@ def check_specificity(text):
 
 def check_stakes(text):
     """Tension, cost, negation. Something the viewer might lose."""
-    w = [x.lower().strip("'’") for x in words(text)]
+    w = [x.lower().strip("'’¿¡") for x in words(text)]
     hits = [x for x in w if x in STAKES]
     markers = sorted(set(hits))
-    if re.search(r"\$\s?\d", text):
+    if re.search(r"(?:US\$|USD|U\$S|\$|€)\s?\d", text):
         markers.append("a price")
     n = len(markers)
     score = {0: 20.0, 1: 70.0}.get(n, 100.0)
@@ -167,12 +350,14 @@ def check_frontload(text):
     w = words(text)
     if not w:
         return 0.0, "empty"
-    low = [x.lower().strip("'’") for x in w]
+    low = [x.lower().strip("'’¿¡") for x in w]
     opener = " ".join(low[:2])
     penalty = 0
     hit_opener = None
     for weak in WEAK_OPENERS:
-        if opener.startswith(weak) or low[0] == weak:
+        # Whole-word match only: "hoy" must not fire on "hoyo", nor "este"
+        # on "estefanía". The two-word openers match the whole two-word span.
+        if low[0] == weak or opener == weak or opener.startswith(weak + " "):
             penalty, hit_opener = 30, weak
             break
     payload = None
@@ -199,14 +384,15 @@ def check_frontload(text):
 
 def check_address(text):
     """Aimed at one viewer, or floating in the air."""
-    low = text.lower()
-    w = [x.lower().strip("'’") for x in words(text)]
-    if re.search(r"\b(you|your|you're|youre|yourself)\b", low):
-        return 100.0, "speaks to the viewer"
+    w = [x.lower().strip("'’¿¡") for x in words(text)]
     if w and w[0] in IMPERATIVES:
         return 90.0, f"imperative opener (\"{w[0]}\")"
-    if re.search(r"\b(i|my|me|we|our)\b", low):
-        return 70.0, "first person, no viewer named"
+    second = second_person_hits(text)
+    if second:
+        return 100.0, f"speaks to the viewer (\"{second[0]}\")"
+    first = first_person_hits(text)
+    if first:
+        return 70.0, f"first person (\"{first[0]}\"), no viewer named"
     return 35.0, "third person, nobody in the room"
 
 
@@ -278,7 +464,7 @@ def main():
     if args.hook:
         lines = [args.hook]
     else:
-        raw = sys.stdin.read() if args.input == "-" else open(args.input, encoding="utf-8").read()
+        raw = _read_input(args.input)
         lines = [l.strip() for l in raw.splitlines() if l.strip()]
     if not lines:
         print("nothing to score", file=sys.stderr)

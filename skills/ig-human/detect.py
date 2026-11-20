@@ -29,15 +29,113 @@ import statistics
 import sys
 import unicodedata
 
+# Windows consoles default to cp1252 and choke on the first emoji or accent.
+for _stream in (sys.stdin, sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
+
+def _read_input(path):
+    """Read a text file, or stdin when path is "-". Accepts UTF-8 with or
+    without BOM, UTF-16 (what Windows PowerShell 5.1 writes with `>`) and, as
+    a last resort, Windows ANSI, so a file saved on Windows never crashes."""
+    if path == "-":
+        return sys.stdin.read().lstrip("\ufeff")
+    with open(path, "rb") as fh:
+        data = fh.read()
+    if data[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        return data.decode("utf-16")
+    try:
+        return data.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return data.decode("cp1252")
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 LEX = os.path.join(HERE, "slop.json")
 
-SENT_RE = re.compile(r"[^.!?\n]+[.!?]*")
-WORD_RE = re.compile(r"[A-Za-z']+")
+# ---------------------------------------------------------------------------
+# Spanish (rioplatense) adaptation. Tokenising is Unicode-aware. VOICE keeps
+# the English contraction count and adds the Spanish equivalents of "a person
+# wrote this": voseo forms and imperatives ("tenés", "fijate", "mirá"),
+# second-person pronouns, first-person pronouns and -é/-í preterites, and the
+# colloquial markers of the Río de la Plata ("che", "posta", "laburo").
+# ---------------------------------------------------------------------------
+
+SENT_RE = re.compile(r"(?:[^.!?\n]|(?<=\d)\.(?=\d))+[.!?]*")   # "2.000" is not a sentence end
+WORD_RE = re.compile(r"[^\W\d_]+(?:'[^\W\d_]+)?")
 CONTRACTIONS = re.compile(r"\b\w+'(?:s|t|re|ve|ll|d|m)\b", re.IGNORECASE)
-PRONOUNS = re.compile(r"\b(i|me|my|mine|we|us|our|you|your)\b", re.IGNORECASE)
-NUMBERS = re.compile(r"\b\d[\d,.]*%?\b|\$\d")
-PROPER = re.compile(r"(?<![.!?]\s)(?<!^)\b[A-Z][a-z]{2,}\b", re.MULTILINE)
+PRONOUNS = re.compile(
+    r"\b(?:i|me|my|mine|we|us|our|you|your"
+    r"|yo|mi|mis|mío|mía|míos|mías|nosotros|nosotras|nos|nuestro|nuestra"
+    r"|nuestros|nuestras|conmigo"
+    r"|vos|te|tu|tus|tuyo|tuya|tuyos|tuyas|tú|ti|contigo|usted|ustedes|les|os)\b",
+    re.IGNORECASE)
+VOSEO = re.compile(
+    r"\b(?:sos|tenés|querés|podés|sabés|hacés|estás|vas|necesitás|pensás|creés"
+    r"|decís|vendés|cobrás|perdés|gastás|pagás|usás|mandás|respondés|tardás"
+    r"|contestás|laburás|trabajás|seguís|vivís|fijate|mirá|dejá|probá|hacé"
+    r"|hacelo|hacela|decime|mandame|mandá|escribime|escribí|comentá|guardá"
+    r"|guardalo|compartí|compartilo|frená|pará|imaginá|anotá|leé|poné|sacá"
+    r"|acordate|olvidate|pensá|contame|contá|agendá|agendalo|reservá|probalo"
+    r"|chequeá|revisá|calculá|medí|preguntale|decile|mostrale|cerrá|abrí"
+    r"|sumá|conectá|cambiá|automatizá|respondé|contestá|cobrá|vendé|armá|usá"
+    r"|empezá|arrancá|tomá|borrá|copiá|robá|dale|andá|vení|fijense|fíjense)\b",
+    re.IGNORECASE)
+VOSEO_ENDING = re.compile(r"\b[a-záéíóúñü]{3,}(?:ás|és)\b", re.IGNORECASE)
+NOT_VOSEO = {
+    "además", "jamás", "quizás", "atrás", "detrás", "demás", "inglés",
+    "francés", "después", "través", "interés", "estrés", "revés", "cortés",
+    "portugués", "holandés", "japonés", "danés", "irlandés", "escocés",
+    "burgués", "marqués", "ciprés", "montés", "compás", "finlandés",
+    "entremés", "arnés", "andrés", "tomás", "inés", "moisés", "nicolás",
+}
+FIRST_PERSON_VERB = re.compile(r"\b[a-záéíóúñü]{3,}(?:é|í)\b", re.IGNORECASE)
+NOT_FIRST_PERSON = {
+    "qué", "porqué", "café", "así", "ahí", "aquí", "allí", "sí", "bebé",
+    "josé", "maní", "té", "comité", "carné", "puré", "cliché", "colibrí",
+    "israelí", "iraní", "marroquí", "rubí", "jabalí", "esquí", "mí",
+    # voseo imperatives of -er/-ir verbs share the ending; they are 2nd person
+    "hacé", "poné", "decí", "vení", "escribí", "compartí", "seguí", "leé",
+    "medí", "respondé", "vendé", "abrí", "corré", "comé", "bebé", "creé",
+}
+COLLOQUIAL = re.compile(
+    r"\b(?:che|bro|posta|re|laburo|laburar|laburás|guita|plata|quilombo"
+    r"|bardo|boludo|boluda|flaco|flaca|loco|loca|dale|ojo|mirá|fijate"
+    r"|tranqui|igual|onda|zafar|zafás|bancar|bancás|garpa|garpar|joya"
+    r"|copado|copada|bajón|bajon|al toque|de una|ni ahí|ni ahi|un montón"
+    r"|un monton|la verdad|en serio|literal|tal cual|obvio|nada|o sea"
+    r"|viste|sabés qué|sabes que|te juro|capaz|ponele|digamos|más o menos)\b",
+    re.IGNORECASE)
+NUMBERS = re.compile(r"\b\d[\d,.]*%?\b|(?:US\$|USD|\$|€)\s?\d")
+# Spanish writes weekdays and months in lowercase, so PROPER misses them, and
+# spoken numbers ("diez minutos", "cinco reels") are as concrete as digits.
+# "un/una/uno" are left out on purpose: they are articles far more often.
+CONCRETE_ES = re.compile(
+    r"\b(?:dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece"
+    r"|catorce|quince|veinte|treinta|cuarenta|cincuenta|sesenta|setenta"
+    r"|ochenta|noventa|cien|ciento|doscientos|trescientos|quinientos|mil"
+    r"|millón|millones|media hora|lunes|martes|miércoles|miercoles|jueves"
+    r"|viernes|sábado|sabado|domingo|enero|febrero|marzo|abril|mayo|junio"
+    r"|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\b",
+    re.IGNORECASE)
+PROPER = re.compile(r"(?<![.!?]\s)(?<!^)\b[A-ZÁÉÍÓÚÑÜ][a-záéíóúñü]{2,}\w*\b", re.MULTILINE)
+
+
+def informality_hits(text):
+    """Contractions (en) plus voseo forms, imperatives and -ás/-és endings (es)."""
+    n = len(CONTRACTIONS.findall(text)) + len(VOSEO.findall(text))
+    seen = set(m.lower() for m in VOSEO.findall(text))
+    for w in WORD_RE.findall(text):
+        lw = w.lower()
+        if lw in seen:
+            continue
+        if VOSEO_ENDING.fullmatch(lw) and lw not in NOT_VOSEO:
+            n += 1
+        elif FIRST_PERSON_VERB.fullmatch(lw) and lw not in NOT_FIRST_PERSON:
+            n += 1
+    return n
 
 
 def clamp(n):
@@ -76,7 +174,8 @@ def check_specificity(text):
     if len(w) < 25:
         return 50.0, "too short to judge"
     per100 = 100 / len(w)
-    hits = len(NUMBERS.findall(text)) + len(set(PROPER.findall(text)))
+    hits = (len(NUMBERS.findall(text)) + len(set(PROPER.findall(text)))
+            + len(CONCRETE_ES.findall(text)))
     density = hits * per100
     score = scale(density, human=6.0, machine=0.5)
     return score, f"{hits} concrete markers, {density:.1f} per 100 words (want 4+)"
@@ -124,7 +223,10 @@ def check_voice(text, lex):
     if len(w) < 25:
         return 50.0, "too short to judge"
     per100 = 100 / len(w)
-    contractions = len(CONTRACTIONS.findall(text)) * per100
+    # "contractions" keeps its name for the JSON consumers, but it is now the
+    # informality count: English contractions plus Spanish voseo and
+    # first-person verb forms. Colloquial markers count half each.
+    contractions = (informality_hits(text) + 0.5 * len(COLLOQUIAL.findall(text))) * per100
     person = len(PRONOUNS.findall(text)) * per100
     tells = 0
     names = []
@@ -144,7 +246,7 @@ def check_voice(text, lex):
     if uniform:
         score -= 12
         names.append("uniform-bullets")
-    detail = (f"{contractions:.1f} contractions, {person:.1f} personal pronouns "
+    detail = (f"{contractions:.1f} contractions/voseo, {person:.1f} personal pronouns "
               f"per 100 words, {tells} structural tell(s)")
     if names:
         detail += " [" + ", ".join(names[:4]) + "]"
@@ -199,7 +301,7 @@ def main():
     args = ap.parse_args()
 
     lex = json.load(open(args.lexicon, encoding="utf-8"))
-    read = lambda p: sys.stdin.read() if p == "-" else open(p, encoding="utf-8").read()
+    read = _read_input
 
     targets = [(args.input, read(args.input))]
     if args.compare:
@@ -216,7 +318,7 @@ def main():
         })
 
     if args.json:
-        print(json.dumps(payload if args.compare else payload[0], indent=2))
+        print(json.dumps(payload if args.compare else payload[0], indent=2, ensure_ascii=False))
         return
 
     for (name, text), p in zip(targets, payload):

@@ -33,11 +33,34 @@ import re
 import sys
 import unicodedata
 
+# Windows consoles default to cp1252 and choke on the first emoji or accent.
+for _stream in (sys.stdin, sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
+
+def _read_input(path):
+    """Read a text file, or stdin when path is "-". Accepts UTF-8 with or
+    without BOM, UTF-16 (what Windows PowerShell 5.1 writes with `>`) and, as
+    a last resort, Windows ANSI, so a file saved on Windows never crashes."""
+    if path == "-":
+        return sys.stdin.read().lstrip("\ufeff")
+    with open(path, "rb") as fh:
+        data = fh.read()
+    if data[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        return data.decode("utf-16")
+    try:
+        return data.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return data.decode("cp1252")
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 LEX = os.path.join(HERE, "slop.json")
 
 URL_RE = re.compile(r"https?://\S+|www\.\S+|\S+@\S+\.\S+")
-SENT_RE = re.compile(r"[^.!?\n]+[.!?]*")
+SENT_RE = re.compile(r"(?:[^.!?\n]|(?<=\d)\.(?=\d))+[.!?]*")   # "2.000" is not a sentence end
 
 
 def load_lexicon(path=LEX):
@@ -148,7 +171,8 @@ def pass_lexical(text, lex):
     text = re.sub(r"(?m)^[ \t]*(?:[,.;:]+[ \t]*)+", "", text)
     text = re.sub(r"(?m)^[ \t](?=\S)", "", text)       # one space left by a deletion.
                                                       # Deeper indents are deliberate.
-    text = re.sub(r"\s+([,.;:!?])", r"\1", text)
+    text = re.sub(r"[ \t]+([,.;:!?])", r"\1", text)    # same line only: a paragraph
+                                                      # break is not an artefact
     text = re.sub(r",\s*([,.;:!?])", r"\1", text)      # an em dash became a comma,
                                                       # then the clause after it went
     text = text.replace("...", "\x00ELL\x00")          # protect real ellipses
@@ -159,8 +183,22 @@ def pass_lexical(text, lex):
     text = re.sub(r"\n{3,}", "\n\n", text)
     # An em dash that became a comma, followed by a sentence connective, leaves
     # a splice ("is important, also, it's proof"). Promote it to a full stop.
-    text = re.sub(r",\s*(also|so|still|basically|in the end)\s*,\s*",
+    text = re.sub(r",\s*(also|so|still|basically|in the end|también|así que|igual|al final|o sea)\s*,\s*",
                   lambda m: ". " + m.group(1)[0].upper() + m.group(1)[1:] + ", ", text)
+    # A deleted opener can leave Spanish inverted punctuation orphaned ("¡, hoy").
+    text = re.sub(r"([¡¿])[ \t]*[,.;:]+[ \t]*", r"\1", text)
+    text = re.sub(r"[¡¿][ \t]*[!?]", "", text)           # "¿?" left by a deleted question
+    text = re.sub(r"([.!?])[ \t]*,[ \t]*", r"\1 ", text)   # "modelo., usar" -> "modelo. usar"
+    # "lo necesite y." - a conjunction left dangling by a deleted clause.
+    text = re.sub(r"(?m)(?:^|[ \t]+)(?:y|e|o|u|and|or)[ \t]*(?=[.!?,;:]|$)", "", text)
+    # "sólida e nueva": the e/u alternants only belong before an i-/o- sound.
+    text = re.sub(r"\b([eE])(?= (?![iIhHyY]))", lambda m: "y" if m.group(1) == "e" else "Y", text)
+    text = re.sub(r"\b([uU])(?= (?![oOhH]))", lambda m: "o" if m.group(1) == "u" else "O", text)
+    text = re.sub(r"(?m)^[ \t]*(?:[,.;:!?]+[ \t]*)+", "", text)
+    text = re.sub(r"[ \t]{2,}", " ", text)
+    text = re.sub(r"[ \t]+([,.;:!?])", r"\1", text)
+    text = re.sub(r"(?m)[ \t]+$", "", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
     return text, hits
 
 
@@ -196,10 +234,10 @@ def restore_capitals(original, text):
     a deliberately lower-case voice is a style, not an artefact, and shouting
     over it would be exactly the kind of thing this script exists to stop.
     """
-    starts = re.findall(r"(?:^|[.!?]\s+|\n)\s*([A-Za-z])", original)
+    starts = re.findall(r"(?:^|[.!?]\s+|\n)\s*[¡¿]?([^\W\d_])", original)
     if not starts or sum(1 for c in starts if c.isupper()) * 2 < len(starts):
         return text
-    return re.sub(r"(?:^|(?<=[.!?] )|(?<=[.!?]\n)|(?<=\n))\s*([a-z])",
+    return re.sub(r"(?:^|(?<=[.!?] )|(?<=[.!?]\n)|(?<=\n))\s*[¡¿]?([a-záéíóúñü])",
                   lambda m: m.group(0)[:-1] + m.group(1).upper(), text)
 
 
@@ -262,7 +300,7 @@ def main():
     ap.add_argument("--lexicon", default=LEX, help="path to slop.json")
     args = ap.parse_args()
 
-    raw = sys.stdin.read() if args.input == "-" else open(args.input, encoding="utf-8").read()
+    raw = _read_input(args.input)
     lex = load_lexicon(args.lexicon)
     clean, report = humanize(raw, lex)
 

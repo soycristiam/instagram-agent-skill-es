@@ -27,6 +27,29 @@ import re
 import sys
 import textwrap
 
+# Windows consoles default to cp1252 and choke on the first emoji or accent.
+for _stream in (sys.stdin, sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
+
+def _read_input(path):
+    """Read a text file, or stdin when path is "-". Accepts UTF-8 with or
+    without BOM, UTF-16 (what Windows PowerShell 5.1 writes with `>`) and, as
+    a last resort, Windows ANSI, so a file saved on Windows never crashes."""
+    if path == "-":
+        return sys.stdin.read().lstrip("\ufeff")
+    with open(path, "rb") as fh:
+        data = fh.read()
+    if data[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        return data.decode("utf-16")
+    try:
+        return data.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return data.decode("cp1252")
+
 LIMIT = 2200             # Instagram's hard caption limit.
 TRUNCATE = 125           # Roughly where the feed cuts to "... more".
 HASHTAG_LIMIT = 5        # Instagram's cap per post or reel since 18 Dec 2025,
@@ -35,27 +58,71 @@ HASHTAG_LIMIT = 5        # Instagram's cap per post or reel since 18 Dec 2025,
                          # rather than many generic ones, can improve both your
                          # content's performance and people's experience".
 
-HASHTAG_RE = re.compile(r"(?:^|\s)(#[A-Za-z0-9_]+)")
+HASHTAG_RE = re.compile(r"(?:^|\s)(#\w+)")
 MENTION_RE = re.compile(r"(?:^|\s)(@[A-Za-z0-9_.]+)")
-LINK_RE = re.compile(r"https?://\S+|\bwww\.\S+|\b[a-z0-9-]+\.(?:com|co|io|net|org|ai|app)/\S*",
+LINK_RE = re.compile(r"https?://\S+|\bwww\.\S+|\b[a-z0-9-]+\.(?:com|co|io|net|org|ai|app|ar|mx|es|agency)/\S*",
                      re.IGNORECASE)
 EMOJI_RE = re.compile(r"[\U0001F300-\U0001FAFF☀-➿←-⇿️]")
-CONCRETE_RE = re.compile(r"\$\s?\d|\b\d[\d,.]*\b|(?<!^)\b[A-Z][a-z]{2,}\b", re.MULTILINE)
+CONCRETE_RE = re.compile(r"(?:US\$|USD|\$|€)\s?\d|\b\d[\d,.]*\b|(?<!^)\b[A-ZÁÉÍÓÚÑÜ][a-záéíóúñü]{2,}\w*\b",
+                         re.MULTILINE)
 
+# ---------------------------------------------------------------------------
+# Spanish (rioplatense) adaptation: every ask has its English pattern and its
+# Spanish one, voseo and tú. The keyword ask requires the keyword in CAPITALS
+# ("comentá GUÍA"), scoped with (?-i:) so the case-insensitive flag does
+# not make "comentá abajo" count as a keyword.
+# ---------------------------------------------------------------------------
 ASKS = [
-    (re.compile(r"(?i)\bcomment (?:the word |\")?[A-Z0-9]{2,}\b"), "comment a keyword"),
-    (re.compile(r"(?i)\b(?:dm|message) me\b"), "DM me"),
-    (re.compile(r"(?i)\bsave (?:this|it)\b"), "save this"),
-    (re.compile(r"(?i)\bshare (?:this|it)\b"), "share this"),
-    (re.compile(r"(?i)\bfollow (?:me|for)\b"), "follow"),
-    (re.compile(r"(?i)\blink in (?:my )?bio\b"), "link in bio"),
-    (re.compile(r"(?i)\b(?:swipe|tap) (?:through|left|right|for|to)\b"), "swipe or tap"),
-    (re.compile(r"(?i)\btell me\b|\bwhat would you\b|\bwhich one\b"), "answer a question"),
+    (re.compile(r"(?i)\bcomment (?:the word |\")?[A-Z0-9]{2,}\b"
+                r"|\b(?:coment[áa](?:me|nos)?|escrib[íi](?:me)?|dej[áa](?:me)? (?:un comentario con|la palabra)"
+                r"|pon[ée](?:me)?|mand[áa](?:me)?)\s+(?:la palabra\s+|\"|“|«)?(?-i:[A-ZÁÉÍÓÚÑ0-9]{2,})\b"
+                r"|\b(?-i:[A-ZÁÉÍÓÚÑ]{3,}) en (?:los )?comentarios\b"),
+     "comment a keyword"),
+    (re.compile(r"(?i)\b(?:dm|message) me\b"
+                r"|\b(?:escrib[íi]me|escr[íi]beme|mand[áa]me|m[áa]ndame|envi[áa]me|env[íi]ame|habl[áa]me|h[áa]blame)\b"
+                r"|\bme (?:mand[áa]s|escrib[íi]s|escribes|mandas) (?:un )?(?:mensaje|dm|md|privado|whatsapp)\b"
+                r"|\b(?:por|al|un) (?:dm|md|privado|interno|directo)\b|\bpor whatsapp\b|\bmandame un whatsapp\b"),
+     "DM me"),
+    (re.compile(r"(?i)\bsave (?:this|it)\b"
+                r"|\bguard[áa](?:lo|te|telo|la)?\b|\bgu[áa]rda(?:lo|telo|la)?\b|\bguardar (?:este|esto)\b"),
+     "save this"),
+    (re.compile(r"(?i)\bshare (?:this|it)\b"
+                r"|\bcompart[íi](?:lo|la|selo)?\b|\bcomparte(?:lo|la)?\b|\bcomp[áa]rte(?:lo|la|selo)\b"
+                r"|\b(?:mand[áa]|m[áa]nda|pas[áa]|p[áa]sa)(?:se|le)?(?:lo|la|selo) a\b|\betiquet[áa]\b|\betiqueta a\b"),
+     "share this"),
+    (re.compile(r"(?i)\bfollow (?:me|for)\b"
+                r"|\bsegu[íi](?:me|nos|r la cuenta)\b|\bs[íi]gue(?:me|nos)\b|\bsigueme\b|\bsegu[íi] a @\w+"),
+     "follow"),
+    (re.compile(r"(?i)\blink in (?:my )?bio\b"
+                r"|\b(?:link|enlace) en (?:la |mi )?bio\b|\ben (?:la|mi) bio\b|\blink en (?:el )?perfil\b"),
+     "link in bio"),
+    (re.compile(r"(?i)\b(?:swipe|tap) (?:through|left|right|for|to)\b"
+                r"|\bdesliz[áa]\b|\bdesliza\b|\bpas[áa] (?:a la siguiente|las im[áa]genes|el carrusel)\b|\btoc[áa] (?:acá|aquí|el link|la imagen)\b"),
+     "swipe or tap"),
+    (re.compile(r"(?i)\btell me\b|\bwhat would you\b|\bwhich one\b"
+                r"|\bcont[áa]me\b|\bcu[ée]ntame\b|\bdec[íi]me\b|\bdime\b|\brespond[ée]me\b"
+                r"|\b¿?(?:vos )?qu[ée] (?:har[íi]as|eleg[íi]s|elegirías|pens[áa]s|opin[áa]s)\b|\b¿?cu[áa]l (?:eleg[íi]s|elegir[íi]as|es tu|te pas[óo]|prefer[íi]s)\b|\b¿?te pas[óo]\b"),
+     "answer a question"),
+    (re.compile(r"(?i)\bbook a call\b"
+                r"|\bagend[áa](?:lo|te)?\b|\bagenda (?:una|tu|un)\b|\breserv[áa](?:te|lo)?\b|\breserva tu\b|\bsac[áa] (?:un )?turno\b"),
+     "book a call"),
 ]
 
 FILLER_TAGS = {"#viral", "#fyp", "#explore", "#explorepage", "#foryou", "#foryoupage",
                "#trending", "#instagood", "#love", "#follow", "#like4like", "#reels",
-               "#reelsinstagram", "#viralreels", "#instadaily"}
+               "#reelsinstagram", "#viralreels", "#instadaily",
+               # es
+               "#parati", "#paratí", "#explorar", "#emprendedor", "#emprendedores",
+               "#emprender", "#emprendimiento", "#motivacion", "#motivación", "#exito",
+               "#éxito", "#frases", "#siguemeytesigo", "#sigueme", "#seguime", "#like",
+               "#likes", "#amor", "#viralvideos", "#tendencia", "#argentina", "#reel"}
+
+
+def fold(s):
+    """Lower-case and strip accents, so 'automatización' matches '#automatizacion'."""
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFKD", s.lower())
+                   if not unicodedata.combining(c))
 
 
 def visible_window(text, cut):
@@ -155,10 +222,12 @@ def analyse(text, cut=TRUNCATE, keywords=None):
         + (" - reads as decoration" if density > 4 else ""))
 
     if keywords:
-        low = stripped.lower()
-        found = [k for k in keywords if k.lower() in low]
-        missing = [k for k in keywords if k.lower() not in low]
-        in_window = [k for k in found if k.lower() in window.lower()]
+        # Accent-insensitive: hashtags drop the accents ("#automatizacion"),
+        # and so does half of the audience when they search.
+        low = fold(stripped)
+        found = [k for k in keywords if fold(k) in low]
+        missing = [k for k in keywords if fold(k) not in low]
+        in_window = [k for k in found if fold(k) in fold(window)]
         status = "PASS" if not missing else ("WARN" if found else "FAIL")
         add("SEARCH TERMS", status,
             f"{len(found)}/{len(keywords)} present"
@@ -201,7 +270,7 @@ def main():
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
-    raw = sys.stdin.read() if args.input == "-" else open(args.input, encoding="utf-8").read()
+    raw = _read_input(args.input)
     a = analyse(raw, cut=args.truncate, keywords=args.keywords.split(","))
     if args.json:
         print(json.dumps(a, indent=2, ensure_ascii=False))

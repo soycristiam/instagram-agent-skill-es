@@ -32,9 +32,32 @@ import re
 import statistics
 import sys
 
+# Windows consoles default to cp1252 and choke on the first emoji or accent.
+for _stream in (sys.stdin, sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
+
+def _read_input(path):
+    """Read a text file, or stdin when path is "-". Accepts UTF-8 with or
+    without BOM, UTF-16 (what Windows PowerShell 5.1 writes with `>`) and, as
+    a last resort, Windows ANSI, so a file saved on Windows never crashes."""
+    if path == "-":
+        return sys.stdin.read().lstrip("\ufeff")
+    with open(path, "rb") as fh:
+        data = fh.read()
+    if data[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        return data.decode("utf-16")
+    try:
+        return data.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return data.decode("cp1252")
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 HOOKS = os.path.join(HERE, "..", "ig-reel", "hooks.json")
-WORD_RE = re.compile(r"[A-Za-z0-9$%'’-]+")
+WORD_RE = re.compile(r"[\w$%'’€-]+")
 
 try:                                              # optional: score the hooks too
     sys.path.insert(0, os.path.join(HERE, "..", "ig-reel"))
@@ -50,8 +73,13 @@ def load_formulas(path):
         return None
     by_id = {h["id"]: h for h in d["hooks"]}
     order = d.get("classify_order") or sorted(by_id)
-    return [(by_id[i]["id"], by_id[i]["name"],
-             re.compile(by_id[i]["match"], re.IGNORECASE)) for i in order if i in by_id]
+
+    def pattern(h):
+        # `match` is the English regex; `match_es` the Spanish one. Either names the formula.
+        parts = [h["match"]] + ([h["match_es"]] if h.get("match_es") else [])
+        return re.compile("|".join(f"(?:{p})" for p in parts), re.IGNORECASE)
+
+    return [(by_id[i]["id"], by_id[i]["name"], pattern(by_id[i])) for i in order if i in by_id]
 
 
 def classify(hook, formulas):
@@ -64,7 +92,7 @@ def classify(hook, formulas):
 
 
 def read_rows(path):
-    raw = sys.stdin.read() if path == "-" else open(path, encoding="utf-8").read()
+    raw = _read_input(path)
     lines = [l for l in raw.splitlines() if l.strip() and not l.lstrip().startswith("#")]
     if not lines:
         return []

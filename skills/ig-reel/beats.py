@@ -26,15 +26,49 @@ import json
 import re
 import sys
 
-WORD_RE = re.compile(r"[A-Za-z0-9$%'’-]+")
-SENT_RE = re.compile(r"[^.!?]+[.!?]*")
-CONCRETE_RE = re.compile(r"\$\s?\d|\b\d[\d,.]*\b|(?<!^)\b[A-Z][a-z]{2,}\b", re.MULTILINE)
+# Windows consoles default to cp1252 and choke on the first emoji or accent.
+for _stream in (sys.stdin, sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
+
+def _read_input(path):
+    """Read a text file, or stdin when path is "-". Accepts UTF-8 with or
+    without BOM, UTF-16 (what Windows PowerShell 5.1 writes with `>`) and, as
+    a last resort, Windows ANSI, so a file saved on Windows never crashes."""
+    if path == "-":
+        return sys.stdin.read().lstrip("\ufeff")
+    with open(path, "rb") as fh:
+        data = fh.read()
+    if data[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        return data.decode("utf-16")
+    try:
+        return data.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return data.decode("cp1252")
+
+WORD_RE = re.compile(r"[\w$%'’€-]+")
+SENT_RE = re.compile(r"(?:[^.!?]|(?<=\d)\.(?=\d))+[.!?]*")   # "2.000" is not a sentence end
+CONCRETE_RE = re.compile(r"(?:US\$|USD|\$|€)\s?\d|\b\d[\d,.]*\b|(?<!^)\b[A-ZÁÉÍÓÚÑÜ][a-záéíóúñü]{2,}\w*\b",
+                         re.MULTILINE)
 STOPWORDS = {
     "the", "a", "an", "and", "or", "but", "if", "of", "to", "in", "on", "for",
     "with", "that", "this", "it", "is", "are", "was", "were", "be", "been",
     "you", "your", "i", "my", "me", "we", "our", "they", "them", "he", "she",
     "so", "just", "not", "no", "do", "did", "does", "have", "has", "had",
     "will", "can", "at", "as", "by", "from", "out", "up", "off", "one", "all",
+    # es
+    "el", "la", "los", "las", "un", "una", "unos", "unas", "y", "e", "o", "u",
+    "pero", "si", "de", "del", "al", "en", "con", "por", "para", "que", "qué",
+    "esto", "este", "esta", "eso", "ese", "esa", "es", "son", "era", "eran",
+    "fue", "ser", "estar", "está", "están", "vos", "tu", "tus", "te", "yo",
+    "mi", "mis", "nosotros", "nos", "ellos", "ellas", "él", "ella", "le", "les",
+    "lo", "se", "me", "ya", "solo", "sólo", "no", "ni", "hay", "hace", "hacer",
+    "tiene", "tenés", "tengo", "va", "vas", "voy", "como", "cuando", "donde",
+    "más", "menos", "muy", "todo", "toda", "todos", "cada", "sin", "sobre",
+    "entre", "hasta", "desde", "a", "porque", "también", "ahí", "acá", "ahora",
 }
 
 HOOK_WINDOW = 3.0        # seconds. Past this, the thumb has already decided.
@@ -44,12 +78,15 @@ ABSTRACT_RUN = 3         # beats in a row with nothing checkable in them.
 
 def words(text):
     # "$18,000" is one word when it is spoken, so it is one word here too.
-    return WORD_RE.findall(re.sub(r"(?<=\d),(?=\d)", "", text))
+    # Spanish writes thousands with a dot ("2.000"), so that collapses as well.
+    text = re.sub(r"(?<=\d),(?=\d{3}\b)", "", text)
+    text = re.sub(r"(?<=\d)\.(?=\d{3}\b)", "", text)
+    return WORD_RE.findall(text)
 
 
 def pretty(token):
-    """Put the thousands separator back for display."""
-    return re.sub(r"(\d)(?=(\d{3})+$)", r"\1,", token)
+    """Put the thousands separator back for display (Spanish style, a dot)."""
+    return re.sub(r"(\d)(?=(\d{3})+$)", r"\1.", token)
 
 
 def tc(seconds):
@@ -199,7 +236,7 @@ def main():
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
-    raw = sys.stdin.read() if args.input == "-" else open(args.input, encoding="utf-8").read()
+    raw = _read_input(args.input)
     a = analyse(raw, wpm=args.wpm, target=args.target)
     if not a:
         print("empty script", file=sys.stderr)
