@@ -1,14 +1,19 @@
 ---
 name: ig-repurpose
 description: >-
-  Turn one long asset - a YouTube video, podcast, livestream, newsletter, blog
-  post or client call - into a week of reels and carousels. Use when the user
-  says "repurpose this", "turn this into reels", "I have a video/podcast/
-  transcript", "cut this up", or pastes something long and wants it on
-  Instagram.
+  Convierte un contenido largo (video de YouTube, podcast, vivo, newsletter,
+  nota de blog o llamada con un cliente) en una semana de reels y carruseles.
+  Usala cuando el usuario diga «reciclá esto», «pasalo a reels», «tengo un
+  video, un podcast o una transcripción», «cortá esto en partes» o pegue algo
+  largo y lo quiera en Instagram. También en inglés: "repurpose this", "turn
+  this into reels", "cut this up".
 ---
 
 # ig-repurpose
+
+> **Idioma:** respondé siempre en español, aunque estas instrucciones estén en inglés y aunque el usuario no lo pida. Usá el voseo o el tuteo que indique `~/.claude/instagram/voice.md`; si ese archivo no existe o no lo dice, escribí en español neutro y pasá al voseo si el usuario escribe con voseo. Las plantillas y rótulos de salida que aparecen abajo en inglés (HOOK, CTA, etc.) mostralos traducidos. Los scripts imprimen sus rótulos en inglés (STRONG, WEAK, PASS, FIX...): mostrá la salida tal cual y explicala en español.
+>
+> **Scripts en Windows:** si `python3` no existe, usá `python` (o `py`). Los scripts viven en la carpeta de esta skill (por ejemplo `~/.claude/skills/ig-reel/`). Pasales el texto como archivo, no por un pipe de PowerShell.
 
 One good long asset contains four to six posts. Most people extract one and
 throw the rest away.

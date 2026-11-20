@@ -1,14 +1,20 @@
 ---
 name: ig-caption
 description: >-
-  Write the Instagram caption - the line that survives the "... more" cut, the
-  body, the single ask, the search terms and the three hashtags - and lint it
-  before it goes out. Use when the user says "write the caption", "caption this",
-  "what do I put in the description", has a reel or a carousel ready and needs
-  the text, or asks about hashtags.
+  Escribe el texto (caption) de un posteo de Instagram, la primera línea que
+  sobrevive al corte de «... más», el cuerpo, un solo pedido, los términos de
+  búsqueda y hasta tres hashtags, y lo revisa antes de publicar. Usala cuando
+  el usuario diga «escribime el caption», «armame la descripción», «qué pongo
+  abajo del reel», «qué hashtags uso» o tenga un reel o carrusel listo y le
+  falte el texto. También en inglés: "write the caption", "caption this",
+  hashtags.
 ---
 
 # ig-caption
+
+> **Idioma:** respondé siempre en español, aunque estas instrucciones estén en inglés y aunque el usuario no lo pida. Usá el voseo o el tuteo que indique `~/.claude/instagram/voice.md`; si ese archivo no existe o no lo dice, escribí en español neutro y pasá al voseo si el usuario escribe con voseo. Las plantillas y rótulos de salida que aparecen abajo en inglés (HOOK, CTA, etc.) mostralos traducidos. Los scripts imprimen sus rótulos en inglés (STRONG, WEAK, PASS, FIX...): mostrá la salida tal cual y explicala en español.
+>
+> **Scripts en Windows:** si `python3` no existe, usá `python` (o `py`). Los scripts viven en la carpeta de esta skill (por ejemplo `~/.claude/skills/ig-reel/`). Pasales el texto como archivo, no por un pipe de PowerShell.
 
 One tool lives in this folder and it runs:
 

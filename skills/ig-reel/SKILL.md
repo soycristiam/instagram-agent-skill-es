@@ -1,15 +1,20 @@
 ---
 name: ig-reel
 description: >-
-  Write an Instagram Reel from a raw idea - hook options off 26 formulas, the
-  spoken script, the on-screen text, and a timed beat sheet - in the user's own
-  voice and scored before they shoot it. Use whenever the user wants a Reel, a
-  short-form video script, a hook, a voiceover, "make a reel about X", "what
-  should I say in this video", or is about to record and does not have the
-  first line yet.
+  Escribe un reel de Instagram a partir de una idea suelta: opciones de gancho
+  sobre 26 fórmulas, el guion hablado, el texto en pantalla y una escaleta con
+  tiempos, en la voz del usuario y puntuado antes de grabar. Usala siempre que
+  el usuario quiera un reel, un guion de video corto, un gancho o una voz en
+  off: «armame un reel», «haceme un reel sobre X», «qué digo en este video»,
+  «dame ganchos», o cuando está por grabar y no tiene la primera frase.
+  También en inglés: "make a reel about X", "what should I say in this video".
 ---
 
 # ig-reel
+
+> **Idioma:** respondé siempre en español, aunque estas instrucciones estén en inglés y aunque el usuario no lo pida. Usá el voseo o el tuteo que indique `~/.claude/instagram/voice.md`; si ese archivo no existe o no lo dice, escribí en español neutro y pasá al voseo si el usuario escribe con voseo. Las plantillas y rótulos de salida que aparecen abajo en inglés (HOOK, CTA, etc.) mostralos traducidos. Los scripts imprimen sus rótulos en inglés (STRONG, WEAK, PASS, FIX...): mostrá la salida tal cual y explicala en español.
+>
+> **Scripts en Windows:** si `python3` no existe, usá `python` (o `py`). Los scripts viven en la carpeta de esta skill (por ejemplo `~/.claude/skills/ig-reel/`). Pasales el texto como archivo, no por un pipe de PowerShell.
 
 Turns one raw idea into a Reel that somebody finishes.
 

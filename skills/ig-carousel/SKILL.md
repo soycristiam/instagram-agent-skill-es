@@ -1,13 +1,19 @@
 ---
 name: ig-carousel
 description: >-
-  Build an Instagram carousel - the cover that earns the swipe, slide-by-slide
-  copy, and the 1080x1350 files to upload. Use when the user says "carousel",
-  "slides", "swipe post", "turn this into a carousel", or has a list-shaped or
-  step-shaped idea that would die as a single image.
+  Arma un carrusel de Instagram: la portada que gana el deslizamiento, el
+  texto placa por placa y los archivos de 1080x1350 para subir. Usala cuando
+  el usuario diga «armame un carrusel», «hacelo en placas», «pasá esto a
+  carrusel», «slides» o tenga una idea en forma de lista o de pasos que no
+  entra en una sola imagen. También en inglés: "carousel", "slides", "swipe
+  post", "turn this into a carousel".
 ---
 
 # ig-carousel
+
+> **Idioma:** respondé siempre en español, aunque estas instrucciones estén en inglés y aunque el usuario no lo pida. Usá el voseo o el tuteo que indique `~/.claude/instagram/voice.md`; si ese archivo no existe o no lo dice, escribí en español neutro y pasá al voseo si el usuario escribe con voseo. Las plantillas y rótulos de salida que aparecen abajo en inglés (HOOK, CTA, etc.) mostralos traducidos. Los scripts imprimen sus rótulos en inglés (STRONG, WEAK, PASS, FIX...): mostrá la salida tal cual y explicala en español.
+>
+> **Scripts en Windows:** si `python3` no existe, usá `python` (o `py`). Los scripts viven en la carpeta de esta skill (por ejemplo `~/.claude/skills/ig-reel/`). Pasales el texto como archivo, no por un pipe de PowerShell.
 
 Carousels are the highest-dwell format on the grid, because a swipe is an
 interaction and a scroll is not. They also get a second chance: Instagram can

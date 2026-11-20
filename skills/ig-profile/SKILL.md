@@ -1,14 +1,19 @@
 ---
 name: ig-profile
 description: >-
-  Score an Instagram profile out of 100 against a 12-part rubric and rewrite
-  the parts that lose points - name field, bio, link, highlights, pinned three,
-  grid. Use when the user says "optimize my profile", "fix my bio", "score my
-  Instagram", "why don't people follow me", or pastes their profile and asks how
-  it reads.
+  Puntúa un perfil de Instagram sobre 100 con una rúbrica de 12 partes y
+  reescribe lo que pierde puntos: nombre, bio, link, historias destacadas, los
+  tres fijados y la grilla. Usala cuando el usuario diga «puntuá mi perfil»,
+  «mejorá mi bio», «arreglá mi perfil», «por qué no me siguen» o pegue su
+  perfil y pregunte cómo se lee. También en inglés: "optimize my profile",
+  "fix my bio", "score my Instagram".
 ---
 
 # ig-profile
+
+> **Idioma:** respondé siempre en español, aunque estas instrucciones estén en inglés y aunque el usuario no lo pida. Usá el voseo o el tuteo que indique `~/.claude/instagram/voice.md`; si ese archivo no existe o no lo dice, escribí en español neutro y pasá al voseo si el usuario escribe con voseo. Las plantillas y rótulos de salida que aparecen abajo en inglés (HOOK, CTA, etc.) mostralos traducidos. Los scripts imprimen sus rótulos en inglés (STRONG, WEAK, PASS, FIX...): mostrá la salida tal cual y explicala en español.
+>
+> **Scripts en Windows:** si `python3` no existe, usá `python` (o `py`). Los scripts viven en la carpeta de esta skill (por ejemplo `~/.claude/skills/ig-reel/`). Pasales el texto como archivo, no por un pipe de PowerShell.
 
 Almost everybody optimises the wrong thing here. The profile is not a
 storefront people browse. It is a **decision screen**, arrived at from one

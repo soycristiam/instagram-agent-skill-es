@@ -1,14 +1,19 @@
 ---
 name: ig-story
 description: >-
-  Write the day's Instagram Stories - the frame-by-frame sequence, which
-  stickers to use where, and the one that moves people into the DMs. Use when
-  the user says "stories", "what do I post on my story", "story sequence",
-  "poll idea", "I have nothing to story about", or wants to sell something
-  without making a post about it.
+  Escribe las historias de Instagram del día: la secuencia cuadro por cuadro,
+  qué sticker va en cada una y cuál lleva a la gente a los mensajes directos.
+  Usala cuando el usuario diga «historias», «qué subo a historias», «armame
+  las historias de hoy», «idea de encuesta», «no tengo nada para subir» o
+  quiera vender algo sin hacer un posteo. También en inglés: "stories", "story
+  sequence", "poll idea".
 ---
 
 # ig-story
+
+> **Idioma:** respondé siempre en español, aunque estas instrucciones estén en inglés y aunque el usuario no lo pida. Usá el voseo o el tuteo que indique `~/.claude/instagram/voice.md`; si ese archivo no existe o no lo dice, escribí en español neutro y pasá al voseo si el usuario escribe con voseo. Las plantillas y rótulos de salida que aparecen abajo en inglés (HOOK, CTA, etc.) mostralos traducidos. Los scripts imprimen sus rótulos en inglés (STRONG, WEAK, PASS, FIX...): mostrá la salida tal cual y explicala en español.
+>
+> **Scripts en Windows:** si `python3` no existe, usá `python` (o `py`). Los scripts viven en la carpeta de esta skill (por ejemplo `~/.claude/skills/ig-reel/`). Pasales el texto como archivo, no por un pipe de PowerShell.
 
 Stories are not a smaller feed. The feed is how strangers find you. Stories are
 how the people who already follow you decide whether you are a person worth

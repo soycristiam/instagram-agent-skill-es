@@ -1,16 +1,20 @@
 ---
 name: ig-viral
 description: >-
-  Go and find the reels that are actually working right now in the user's
-  niche, rank them by how far each beat its own account, name the hook formula
-  each one used, and turn that into a swipe file they can shoot from. Use when
-  the user says "find viral videos", "what's working right now", "what are
-  people posting in my niche", "reverse engineer this account", "build me a
-  swipe file", "why is this reel doing numbers", or asks what to make next and
-  has no evidence to answer with.
+  Busca los reels que están funcionando ahora en el nicho del usuario, los
+  ordena por cuánto superó cada uno a su propia cuenta, nombra la fórmula de
+  gancho de cada uno y arma un archivo de referencias para grabar. Usala
+  cuando el usuario diga «buscame videos virales», «qué está funcionando
+  ahora», «qué publica la gente de mi nicho», «analizá esta cuenta», «armame
+  un swipe file», «por qué este reel explotó» o pregunte qué hacer y no tenga
+  datos. También en inglés: "find viral videos", "what's working right now".
 ---
 
 # ig-viral
+
+> **Idioma:** respondé siempre en español, aunque estas instrucciones estén en inglés y aunque el usuario no lo pida. Usá el voseo o el tuteo que indique `~/.claude/instagram/voice.md`; si ese archivo no existe o no lo dice, escribí en español neutro y pasá al voseo si el usuario escribe con voseo. Las plantillas y rótulos de salida que aparecen abajo en inglés (HOOK, CTA, etc.) mostralos traducidos. Los scripts imprimen sus rótulos en inglés (STRONG, WEAK, PASS, FIX...): mostrá la salida tal cual y explicala en español.
+>
+> **Scripts en Windows:** si `python3` no existe, usá `python` (o `py`). Los scripts viven en la carpeta de esta skill (por ejemplo `~/.claude/skills/ig-reel/`). Pasales el texto como archivo, no por un pipe de PowerShell.
 
 The research skill. Everything else in this pack writes; this one goes and
 looks. Run it monthly, not daily. Formulas last a season.

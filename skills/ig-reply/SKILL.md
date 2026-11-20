@@ -1,13 +1,19 @@
 ---
 name: ig-reply
 description: >-
-  Handle the comments under the user's own reels and posts - draft replies to
-  the ones worth answering, sorted by which ones are. Use when the user pastes
-  their comments, says "reply to these", "handle my comments", "someone said X
-  on my reel", or is dealing with a critic, a hater or a lead in the comments.
+  Maneja los comentarios bajo los reels y posteos del propio usuario: ordena
+  cuáles vale la pena contestar y redacta las respuestas. Usala cuando el
+  usuario pegue sus comentarios, diga «respondé estos comentarios»,
+  «contestame esto», «alguien me puso X en el reel» o tenga que lidiar con una
+  crítica, un troll o un posible cliente en los comentarios. También en
+  inglés: "reply to these", "handle my comments".
 ---
 
 # ig-reply
+
+> **Idioma:** respondé siempre en español, aunque estas instrucciones estén en inglés y aunque el usuario no lo pida. Usá el voseo o el tuteo que indique `~/.claude/instagram/voice.md`; si ese archivo no existe o no lo dice, escribí en español neutro y pasá al voseo si el usuario escribe con voseo. Las plantillas y rótulos de salida que aparecen abajo en inglés (HOOK, CTA, etc.) mostralos traducidos. Los scripts imprimen sus rótulos en inglés (STRONG, WEAK, PASS, FIX...): mostrá la salida tal cual y explicala en español.
+>
+> **Scripts en Windows:** si `python3` no existe, usá `python` (o `py`). Los scripts viven en la carpeta de esta skill (por ejemplo `~/.claude/skills/ig-reel/`). Pasales el texto como archivo, no por un pipe de PowerShell.
 
 The comment thread under your own post is where reach is decided. Every reply
 is another interaction on the post, replies arriving in the first hour do most

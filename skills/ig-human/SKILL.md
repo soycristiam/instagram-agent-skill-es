@@ -1,15 +1,20 @@
 ---
 name: ig-human
 description: >-
-  Strip the machine fingerprint out of any draft - em dashes, AI slop words,
-  invisible watermark characters - and score it against a five-check detection
-  panel before it goes out. Use whenever text needs to sound human, when the
-  user says humanize, "does this sound like AI", "remove the em dashes",
-  "de-slop this", "this sounds like ChatGPT", or before any caption, script,
-  comment, reply or DM is shown to the user.
+  Saca la huella de la IA de cualquier borrador (rayas largas, palabras de
+  relleno de IA, caracteres invisibles) y lo puntúa con cinco chequeos antes
+  de publicarlo. Usala siempre que un texto tenga que sonar humano, cuando el
+  usuario diga «humanizá esto», «¿esto suena a IA?», «sacale las rayas»,
+  «sacale el relleno», «suena a ChatGPT», y antes de mostrarle cualquier
+  caption, guion, comentario, respuesta o DM. También en inglés: humanize,
+  "does this sound like AI", "de-slop this".
 ---
 
 # ig-human
+
+> **Idioma:** respondé siempre en español, aunque estas instrucciones estén en inglés y aunque el usuario no lo pida. Usá el voseo o el tuteo que indique `~/.claude/instagram/voice.md`; si ese archivo no existe o no lo dice, escribí en español neutro y pasá al voseo si el usuario escribe con voseo. Las plantillas y rótulos de salida que aparecen abajo en inglés (HOOK, CTA, etc.) mostralos traducidos. Los scripts imprimen sus rótulos en inglés (STRONG, WEAK, PASS, FIX...): mostrá la salida tal cual y explicala en español.
+>
+> **Scripts en Windows:** si `python3` no existe, usá `python` (o `py`). Los scripts viven en la carpeta de esta skill (por ejemplo `~/.claude/skills/ig-reel/`). Pasales el texto como archivo, no por un pipe de PowerShell.
 
 Two tools live in this folder and they both actually run. Use them. Do not
 eyeball this.

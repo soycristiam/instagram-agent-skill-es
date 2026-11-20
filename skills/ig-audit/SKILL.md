@@ -1,14 +1,19 @@
 ---
 name: ig-audit
 description: >-
-  Post-mortem on what the user has already posted - which reels actually
-  worked, why, and what to stop making. Use when the user pastes their
-  Instagram insights or past posts and asks "what's working", "why did this
-  flop", "read my analytics", "audit my content", or wants to know what to do
-  more of.
+  Análisis de lo que el usuario ya publicó en Instagram: qué reels funcionaron
+  de verdad, por qué, y qué dejar de hacer. Usala cuando pegue sus
+  estadísticas o posteos viejos y pregunte «qué me está funcionando», «por qué
+  no anduvo este reel», «leé mis estadísticas», «auditá mi contenido» o «qué
+  hago más». También en inglés: "what's working", "why did this flop", "read
+  my analytics", "audit my content".
 ---
 
 # ig-audit
+
+> **Idioma:** respondé siempre en español, aunque estas instrucciones estén en inglés y aunque el usuario no lo pida. Usá el voseo o el tuteo que indique `~/.claude/instagram/voice.md`; si ese archivo no existe o no lo dice, escribí en español neutro y pasá al voseo si el usuario escribe con voseo. Las plantillas y rótulos de salida que aparecen abajo en inglés (HOOK, CTA, etc.) mostralos traducidos. Los scripts imprimen sus rótulos en inglés (STRONG, WEAK, PASS, FIX...): mostrá la salida tal cual y explicala en español.
+>
+> **Scripts en Windows:** si `python3` no existe, usá `python` (o `py`). Los scripts viven en la carpeta de esta skill (por ejemplo `~/.claude/skills/ig-reel/`). Pasales el texto como archivo, no por un pipe de PowerShell.
 
 The only honest source of what works for an account is that account. Every
 rule in every Instagram guide, including the ones in this pack, is a prior.

@@ -1,13 +1,13 @@
 {
-  "name": "instagram-agent",
-  "description": "Thirteen Claude skills that run an Instagram account: Reels off 26 hook formulas with a scored hook and a timed beat sheet, a research skill that finds what is working in your niche and ranks it by outlier multiple, captions linted against the feed truncation, carousels, stories, profile score, weekly plan, comments, replies, DMs, repurposing, audits, and a humanizer that strips the AI fingerprint before anything ships.",
-  "version": "1.0.0",
+  "name": "instagram-agent-es",
+  "description": "Trece skills de Claude para manejar una cuenta de Instagram, en español: reels sobre 26 fórmulas de gancho con puntaje y escaleta con tiempos, búsqueda de lo que funciona en tu nicho, captions revisados contra el corte del feed, carruseles, historias, puntaje del perfil, plan semanal, comentarios, respuestas, DMs, reciclado de contenido, auditoría y un humanizador que saca la huella de la IA. Adaptación al español de instagram-agent-skill de Jake Schincariol.",
+  "version": "1.0.0-es",
   "author": {
-    "name": "Jake Schincariol",
-    "url": "https://opusjake.ai"
+    "name": "Cris Lemos (adaptación al español); original de Jake Schincariol",
+    "url": "https://github.com/soycristiam"
   },
-  "homepage": "https://github.com/Jakeschincariol/instagram-agent-skill",
-  "repository": "https://github.com/Jakeschincariol/instagram-agent-skill",
+  "homepage": "https://github.com/soycristiam/instagram-agent-skill-es",
+  "repository": "https://github.com/soycristiam/instagram-agent-skill-es",
   "license": "MIT",
-  "keywords": ["instagram", "reels", "content", "writing", "humanizer", "social", "marketing"]
+  "keywords": ["instagram", "reels", "contenido", "español", "humanizador", "redes sociales", "marketing"]
 }

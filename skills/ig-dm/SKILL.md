@@ -1,14 +1,20 @@
 ---
 name: ig-dm
 description: >-
-  Write Instagram DMs that get replies - the keyword delivery, the first
-  message to someone who engaged, the collab pitch, and the two follow-ups. Use
-  when the user says "DM this person", "what do I send them", "outreach
-  message", "how do I follow up", "pitch this brand", or is reaching out to
-  someone specific.
+  Escribe mensajes directos de Instagram que reciben respuesta: la entrega de
+  la palabra clave, el primer mensaje a alguien que interactuó, la propuesta
+  de colaboración y los dos seguimientos. Usala cuando el usuario diga
+  «mandale un DM», «qué le escribo», «armame el mensaje», «cómo hago el
+  seguimiento», «quiero proponerle algo a esta marca» o le escriba a alguien
+  puntual. También en inglés: "DM this person", "outreach message", "how do I
+  follow up", "pitch this brand".
 ---
 
 # ig-dm
+
+> **Idioma:** respondé siempre en español, aunque estas instrucciones estén en inglés y aunque el usuario no lo pida. Usá el voseo o el tuteo que indique `~/.claude/instagram/voice.md`; si ese archivo no existe o no lo dice, escribí en español neutro y pasá al voseo si el usuario escribe con voseo. Las plantillas y rótulos de salida que aparecen abajo en inglés (HOOK, CTA, etc.) mostralos traducidos. Los scripts imprimen sus rótulos en inglés (STRONG, WEAK, PASS, FIX...): mostrá la salida tal cual y explicala en español.
+>
+> **Scripts en Windows:** si `python3` no existe, usá `python` (o `py`). Los scripts viven en la carpeta de esta skill (por ejemplo `~/.claude/skills/ig-reel/`). Pasales el texto como archivo, no por un pipe de PowerShell.
 
 Instagram DMs are the only place on the platform where money actually changes
 hands, and they are also where most accounts burn the goodwill their content

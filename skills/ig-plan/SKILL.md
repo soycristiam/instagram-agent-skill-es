@@ -1,13 +1,19 @@
 ---
 name: ig-plan
 description: >-
-  Build the week on Instagram - what to post, which format, when, and who to
-  engage with. Use when the user says "plan my week", "what should I post",
-  "content calendar", "I have nothing to post about", or wants a posting
-  schedule and an engagement list.
+  Arma la semana en Instagram: qué publicar, en qué formato, cuándo y con qué
+  cuentas interactuar. Usala cuando el usuario diga «qué publico esta semana»,
+  «armame la semana», «planificá mi contenido», «calendario de contenido», «no
+  sé qué publicar» o pida un cronograma de publicaciones y una lista de
+  cuentas para interactuar. También en inglés: "plan my week", "what should I
+  post", "content calendar".
 ---
 
 # ig-plan
+
+> **Idioma:** respondé siempre en español, aunque estas instrucciones estén en inglés y aunque el usuario no lo pida. Usá el voseo o el tuteo que indique `~/.claude/instagram/voice.md`; si ese archivo no existe o no lo dice, escribí en español neutro y pasá al voseo si el usuario escribe con voseo. Las plantillas y rótulos de salida que aparecen abajo en inglés (HOOK, CTA, etc.) mostralos traducidos. Los scripts imprimen sus rótulos en inglés (STRONG, WEAK, PASS, FIX...): mostrá la salida tal cual y explicala en español.
+>
+> **Scripts en Windows:** si `python3` no existe, usá `python` (o `py`). Los scripts viven en la carpeta de esta skill (por ejemplo `~/.claude/skills/ig-reel/`). Pasales el texto como archivo, no por un pipe de PowerShell.
 
 The control room. Everything else in this pack executes; this decides what gets
 executed. Run it once a week, on the same day.

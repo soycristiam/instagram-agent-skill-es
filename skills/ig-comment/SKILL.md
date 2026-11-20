@@ -1,13 +1,19 @@
 ---
 name: ig-comment
 description: >-
-  Write comments on other people's Instagram posts and reels that read as a
-  person with an opinion, not a bot. Use when the user pastes a post or a reel
-  and wants a comment, says "comment on this", "engage with this", "what do I
-  say here", or wants a batch for their daily engagement round.
+  Escribe comentarios para posteos y reels de otras cuentas que suenen a una
+  persona con opinión, no a un bot. Usala cuando el usuario pegue un posteo y
+  pida un comentario, diga «comentá esto», «qué le pongo acá», «quiero
+  interactuar con esta cuenta» o quiera una tanda para su ronda diaria de
+  comentarios. También en inglés: "comment on this", "engage with this", "what
+  do I say here".
 ---
 
 # ig-comment
+
+> **Idioma:** respondé siempre en español, aunque estas instrucciones estén en inglés y aunque el usuario no lo pida. Usá el voseo o el tuteo que indique `~/.claude/instagram/voice.md`; si ese archivo no existe o no lo dice, escribí en español neutro y pasá al voseo si el usuario escribe con voseo. Las plantillas y rótulos de salida que aparecen abajo en inglés (HOOK, CTA, etc.) mostralos traducidos. Los scripts imprimen sus rótulos en inglés (STRONG, WEAK, PASS, FIX...): mostrá la salida tal cual y explicala en español.
+>
+> **Scripts en Windows:** si `python3` no existe, usá `python` (o `py`). Los scripts viven en la carpeta de esta skill (por ejemplo `~/.claude/skills/ig-reel/`). Pasales el texto como archivo, no por un pipe de PowerShell.
 
 Commenting is the highest-leverage twenty minutes on Instagram and the easiest
 to do badly. A comment near the top of a reel with 40,000 views is seen by more
