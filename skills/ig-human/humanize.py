@@ -44,17 +44,21 @@ for _stream in (sys.stdin, sys.stdout, sys.stderr):
 def _read_input(path):
     """Read a text file, or stdin when path is "-". Accepts UTF-8 with or
     without BOM, UTF-16 (what Windows PowerShell 5.1 writes with `>`) and, as
-    a last resort, Windows ANSI, so a file saved on Windows never crashes."""
+    a last resort, Windows ANSI, so a file saved on Windows never crashes.
+    Windows line endings become plain newlines, or the caption length would
+    count every carriage return as a character."""
     if path == "-":
-        return sys.stdin.read().lstrip("\ufeff")
+        return sys.stdin.read().lstrip("\ufeff").replace("\r\n", "\n")
     with open(path, "rb") as fh:
         data = fh.read()
     if data[:2] in (b"\xff\xfe", b"\xfe\xff"):
-        return data.decode("utf-16")
-    try:
-        return data.decode("utf-8-sig")
-    except UnicodeDecodeError:
-        return data.decode("cp1252")
+        text = data.decode("utf-16")
+    else:
+        try:
+            text = data.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            text = data.decode("cp1252")
+    return text.replace("\r\n", "\n")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 LEX = os.path.join(HERE, "slop.json")
